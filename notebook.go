@@ -31,7 +31,7 @@ type Note struct {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("path", r.URL.Path)
-	fmt.Println(r.URL.Query())
+	fmt.Println("query", r.URL.Query())
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
