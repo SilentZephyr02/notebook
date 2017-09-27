@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -29,7 +30,16 @@ type Note struct {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+	fmt.Println("path", r.URL.Path)
+	fmt.Println(r.URL.Query())
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	myItems := []string{"item1", "item2", "item3"}
+	a, _ := json.Marshal(myItems)
+
+	w.Write(a)
+	return
 }
 
 func main() {
