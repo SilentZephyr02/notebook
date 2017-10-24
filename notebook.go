@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	_ "github.com/lib/pq"
 )
 
-/*
 type Members struct {
 	ID       int
 	Password string
 }
 
+/*
 type Presets struct {
 	ID          int
 	OwnerID     int
@@ -34,19 +36,30 @@ type Note struct {
 
 //localhost:8080
 
+var db *sql.DB
 var tpl *template.Template
 
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "password"
+	dbname   = "notebook"
+)
+
 func init() {
-	db, err := sql.Open("postgres", "user=postgres dbname=testDB sslmode=disable")
+	var err error
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+	db, err = sql.Open("postgres", psqlInfo)
+
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
-	if err = db.Ping(); err != nil {
-		panic(err)
-	}
-	fmt.Println("You connected to your database.")
+	fmt.Println("You connected to the database.")
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS members (ID SERIAL PRIMARY KEY,Password varchar(20))")
+	//_, err = db.Exec("INSERT INTO members (Password) VALUES ('password')('bird'),('cat'),('dog'),('tree')")
 
 	tpl = template.Must(template.ParseGlob("templates/*"))
 }
@@ -54,6 +67,7 @@ func init() {
 func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/about", about)
+	http.HandleFunc("/members", members)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -72,4 +86,33 @@ func about(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tpl.ExecuteTemplate(w, "about.gohtml", cd)
+}
+
+func members(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query("SELECT * FROM members")
+
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	defer rows.Close()
+
+	mbrs := make([]Members, 0)
+	for rows.Next() {
+		mbr := Members{}
+		err := rows.Scan(&mbr.ID, &mbr.Password)
+
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		mbrs = append(mbrs, mbr)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	tpl.ExecuteTemplate(w, "members.gohtml", mbrs)
 }
