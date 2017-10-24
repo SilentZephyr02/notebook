@@ -1,11 +1,13 @@
 package main
 
 import (
-	"encoding/json"
+	"database/sql"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
+/*
 type Members struct {
 	ID       int
 	Password string
@@ -28,21 +30,46 @@ type Note struct {
 	ID   int
 	Note string
 }
+*/
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("path", r.URL.Path)
-	fmt.Println("query", r.URL.Query())
+//localhost:8080
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+var tpl *template.Template
 
-	myItems := []string{"hello", "()", "world"}
-	a, _ := json.Marshal(myItems)
+func init() {
+	db, err := sql.Open("postgres", "user=postgres dbname=testDB sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
 
-	w.Write(a)
-	return
+	if err = db.Ping(); err != nil {
+		panic(err)
+	}
+	fmt.Println("You connected to your database.")
+
+	tpl = template.Must(template.ParseGlob("templates/*"))
 }
 
 func main() {
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", index)
+	http.HandleFunc("/about", about)
 	http.ListenAndServe(":8080", nil)
+}
+
+func index(w http.ResponseWriter, r *http.Request) {
+	tpl.ExecuteTemplate(w, "index.gohtml", "ACME INC")
+}
+
+func about(w http.ResponseWriter, r *http.Request) {
+	type customData struct {
+		Title   string
+		Members []string
+	}
+
+	cd := customData{
+		Title: "THE TEAM", Members: []string{"Money", "Wee", "Kay"},
+	}
+
+	tpl.ExecuteTemplate(w, "about.gohtml", cd)
 }
