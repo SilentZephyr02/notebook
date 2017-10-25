@@ -11,6 +11,7 @@ import (
 
 type Members struct {
 	ID       int
+	Username string
 	Password string
 }
 
@@ -62,7 +63,7 @@ func init() {
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
-	//_, err = db.Exec("INSERT INTO members (Password) VALUES ('password'),('bird'),('cat'),('dog'),('tree')")
+	//_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
 
 	if err != nil {
 		panic(err)
@@ -109,7 +110,7 @@ func members(w http.ResponseWriter, r *http.Request) {
 	mbrs := make([]Members, 0)
 	for rows.Next() {
 		mbr := Members{}
-		err := rows.Scan(&mbr.ID, &mbr.Password)
+		err := rows.Scan(&mbr.ID, &mbr.Username, &mbr.Password)
 
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
@@ -132,9 +133,10 @@ func membersCreateForm(w http.ResponseWriter, r *http.Request) {
 
 func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
 	mbr := Members{}
+	mbr.Username = r.FormValue("username")
 	mbr.Password = r.FormValue("password")
 
-	_, err := db.Exec("INSERT INTO members (Password) VALUES ($1)", mbr.Password)
+	_, err := db.Exec("INSERT INTO members (Username,Password) VALUES ($1,$2)", mbr.Username, mbr.Password)
 	if err != nil {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
