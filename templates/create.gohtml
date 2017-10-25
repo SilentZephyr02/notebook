@@ -4,4 +4,10 @@
     password <input type="text" name="password">
     <input type="submit">
 </form>
+<br/>
+    {{if not .}}
+    
+    {{else}}
+    <h2>New Member Created</h2>
+    {{end}}
 {{template "footer"}}
