@@ -59,7 +59,14 @@ func init() {
 
 	fmt.Println("You connected to the database.")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS members (ID SERIAL PRIMARY KEY,Password varchar(20))")
-	//_, err = db.Exec("INSERT INTO members (Password) VALUES ('password')('bird'),('cat'),('dog'),('tree')")
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int, Permissions int)")
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
+	//_, err = db.Exec("INSERT INTO members (Password) VALUES ('password'),('bird'),('cat'),('dog'),('tree')")
+
+	if err != nil {
+		panic(err)
+	}
 
 	tpl = template.Must(template.ParseGlob("templates/*"))
 }
@@ -68,6 +75,8 @@ func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/about", about)
 	http.HandleFunc("/members", members)
+	http.HandleFunc("/members/new", membersCreateForm)
+	http.HandleFunc("/members/new/process", membersCreateProcess)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -115,4 +124,20 @@ func members(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tpl.ExecuteTemplate(w, "members.gohtml", mbrs)
+}
+
+func membersCreateForm(w http.ResponseWriter, r *http.Request) {
+	tpl.ExecuteTemplate(w, "create.gohtml", nil)
+}
+
+func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
+	mbr := Members{}
+	mbr.Password = r.FormValue("password")
+
+	_, err := db.Exec("INSERT INTO members (Password) VALUES ($1)", mbr.Password)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+	tpl.ExecuteTemplate(w, "create.gohtml", mbr)
 }
