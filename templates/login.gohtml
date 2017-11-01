@@ -1,16 +1,11 @@
 {{template "header"}}
-<h1>Create new members</h1>
-<form method="post" action="/members/new/process">
+<h1>Login page</h1>
+<form method="post" action="/login">
     username <br/>
     <input type="text" name="username"><br/>
     password <br/>
     <input type="text" name="password"><br/>
     <input type="submit">
 </form>
-<br/>
-    {{if not .}}
-    
-    {{else}}
-    <h2>New Member Created</h2>
-    {{end}}
+    <h2>{{.}}</h2>
 {{template "footer"}}
