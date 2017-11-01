@@ -147,10 +147,31 @@ func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
 	mbr.Username = r.FormValue("username")
 	mbr.Password = r.FormValue("password")
 
+	if checkIfMemberExists(mbr.Username) {
+		fmt.Println("user exists")
+		tpl.ExecuteTemplate(w, "create.gohtml", nil)
+		return
+	}
+
 	_, err := db.Exec("INSERT INTO members (Username,Password) VALUES ($1,$2)", mbr.Username, mbr.Password)
 	if err != nil {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
 	tpl.ExecuteTemplate(w, "create.gohtml", mbr)
+}
+
+func checkIfMemberExists(name string) bool {
+	rows, err := db.Query("SELECT COUNT(Username) FROM members WHERE Username=$1", name)
+	rows.Next()
+	var count int
+	err = rows.Scan(&count)
+	if err != nil {
+		panic(err)
+	}
+	if count > 0 {
+		return true
+	}
+	return false
+
 }
