@@ -73,29 +73,40 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/", index)
-	http.HandleFunc("/about", about)
+	http.HandleFunc("/", loginCreateForm)
+	http.HandleFunc("/login", loginProcess)
 	http.HandleFunc("/members", members)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
 	http.ListenAndServe(":8080", nil)
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
-	tpl.ExecuteTemplate(w, "index.gohtml", "Hello World")
+func loginCreateForm(w http.ResponseWriter, r *http.Request) {
+	tpl.ExecuteTemplate(w, "login.gohtml", nil)
 }
 
-func about(w http.ResponseWriter, r *http.Request) {
-	type customData struct {
-		Title   string
-		Members []string
-	}
+func loginProcess(w http.ResponseWriter, r *http.Request) {
+	Username := r.FormValue("username")
+	Password := r.FormValue("password")
 
-	cd := customData{
-		Title: "THE TEAM", Members: []string{"Money", "Wee", "Kay"},
-	}
+	mbr := Members{}
 
-	tpl.ExecuteTemplate(w, "about.gohtml", cd)
+	row := db.QueryRow("SELECT * FROM members WHERE USERNAME =$1 AND PASSWORD =$2", Username, Password)
+	err := row.Scan(&mbr.ID, &mbr.Username, &mbr.Password)
+
+	switch {
+	case err == sql.ErrNoRows:
+		//no row
+		fmt.Println("No user found")
+		tpl.ExecuteTemplate(w, "login.gohtml", "No User Found")
+	case err != nil:
+		//else error
+		http.Error(w, http.StatusText(500), 500)
+		return
+	default:
+		//1 row
+		tpl.ExecuteTemplate(w, "index.gohtml", mbr.Username)
+	}
 }
 
 func members(w http.ResponseWriter, r *http.Request) {
