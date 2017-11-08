@@ -71,7 +71,7 @@ func init() {
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
-	//_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
+	_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
 	//The above line allows us to generate a database with filled in fields for testing
 
 	if err != nil {
@@ -87,6 +87,10 @@ func main() {
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
+	http.HandleFunc("/members/update", membersUpdateForm)
+	http.HandleFunc("/members/update/process", membersUpdateProcess)
+
+	http.CookieJar
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -126,6 +130,9 @@ func loginProcess(w http.ResponseWriter, r *http.Request) {
 }
 
 func listAllMembers(w http.ResponseWriter, r *http.Request) {
+
+	//c := r.Header
+	//fmt.Println(c)
 	rows, err := db.Query("SELECT * FROM members")
 
 	if err != nil {
@@ -180,6 +187,48 @@ func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tpl.ExecuteTemplate(w, "create.gohtml", mbr)
+}
+
+func membersUpdateForm(w http.ResponseWriter, r *http.Request) {
+	memberID := r.FormValue("id")
+	if memberID == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	row := db.QueryRow("SELECT * FROM members WHERE id = $1", memberID)
+
+	mbr := Members{}
+	err := row.Scan(&mbr.ID, &mbr.Username, &mbr.Password)
+	switch {
+	case err == sql.ErrNoRows:
+		http.NotFound(w, r)
+		return
+	case err != nil:
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+	tpl.ExecuteTemplate(w, "update.gohtml", mbr)
+}
+
+func membersUpdateProcess(w http.ResponseWriter, r *http.Request) {
+	memberID := r.FormValue("id")
+	if memberID == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	mbr := Members{}
+	mbr.Username = r.FormValue("Username")
+	mbr.Password = r.FormValue("Password")
+
+	_, err := db.Exec("UPDATE members SET Username=$1,Password=$2 WHERE ID=$3", mbr.Username, mbr.Password, memberID)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	listAllMembers(w, r)
 }
 
 func checkIfMemberExists(name string) bool {

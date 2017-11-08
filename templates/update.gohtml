@@ -1,0 +1,9 @@
+{{template "header"}}
+<h1>This is update</h1>
+<form method="post" action="/members/update/process">
+    <input type="text" name="id" autofocus required value="{{.ID}}">
+    <input type="text" name="Username" required value="{{.Username}}">
+    <input type="text" name="Password" required value="{{.Password}}">
+    <input type="submit">
+</form>
+{{template "footer"}}
