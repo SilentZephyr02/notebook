@@ -59,11 +59,18 @@ func init() {
 	}
 
 	fmt.Println("You connected to the database.")
-	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS members (ID SERIAL PRIMARY KEY,Username varchar(20), Password varchar(20), CONSTRAINT UC_Member UNIQUE (Username))")
+
+	_, err = db.Exec("DROP TABLE IF EXISTS members")
+	_, err = db.Exec("DROP TABLE IF EXISTS presets")
+	_, err = db.Exec("DROP TABLE IF EXISTS metanote")
+	_, err = db.Exec("DROP TABLE IF EXISTS note")
+
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS members (ID SERIAL PRIMARY KEY,Username varchar(20) NOT NULL, Password varchar(20) NOT NULL, CONSTRAINT UC_Member UNIQUE (Username))")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
 	//_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
+	//The above line allows us to generate a database with filled in fields for testing
 
 	if err != nil {
 		panic(err)
@@ -149,6 +156,11 @@ func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
 
 	if checkIfMemberExists(mbr.Username) {
 		fmt.Println("user exists")
+		tpl.ExecuteTemplate(w, "create.gohtml", nil)
+		return
+	}
+	if mbr.Username == "" || mbr.Password == "" {
+		fmt.Println("Field is nil")
 		tpl.ExecuteTemplate(w, "create.gohtml", nil)
 		return
 	}
