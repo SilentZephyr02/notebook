@@ -8,8 +8,8 @@
     <input type="submit">
 </form>
 <br/>
-    {{if not .}}
-    
+    {{if eq . "User exists"}}
+    <h2>{{.}}</h2>
     {{else}}
     <h2>New Member Created</h2>
     {{end}}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -75,7 +77,7 @@ func init() {
 func main() {
 	http.HandleFunc("/", loginCreateForm)
 	http.HandleFunc("/login", loginProcess)
-	http.HandleFunc("/members", members)
+	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
 	http.ListenAndServe(":8080", nil)
@@ -103,13 +105,20 @@ func loginProcess(w http.ResponseWriter, r *http.Request) {
 		//else error
 		http.Error(w, http.StatusText(500), 500)
 		return
+
 	default:
 		//1 row
+		expiration := time.Now().Add(365 * 24 * time.Hour)
+		cookieUsername := http.Cookie{Name: "username", Value: mbr.Username, Expires: expiration}
+		cookieID := http.Cookie{Name: "ID", Value: strconv.Itoa(mbr.ID), Expires: expiration}
+		http.SetCookie(w, &cookieUsername)
+		http.SetCookie(w, &cookieID)
+
 		tpl.ExecuteTemplate(w, "index.gohtml", mbr.Username)
 	}
 }
 
-func members(w http.ResponseWriter, r *http.Request) {
+func listAllMembers(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT * FROM members")
 
 	if err != nil {
@@ -149,7 +158,7 @@ func membersCreateProcess(w http.ResponseWriter, r *http.Request) {
 
 	if checkIfMemberExists(mbr.Username) {
 		fmt.Println("user exists")
-		tpl.ExecuteTemplate(w, "create.gohtml", nil)
+		tpl.ExecuteTemplate(w, "create.gohtml", "exists")
 		return
 	}
 
