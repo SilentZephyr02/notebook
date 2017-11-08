@@ -30,12 +30,11 @@ type MetaNote struct {
 	MemberID    int
 	Permissions int
 }
-
+*/
 type Note struct {
 	ID   int
 	Note string
 }
-*/
 
 //localhost:8080
 
@@ -87,14 +86,39 @@ func main() {
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
+<<<<<<< HEAD
 	http.HandleFunc("/members/update", membersUpdateForm)
 	http.HandleFunc("/members/update/process", membersUpdateProcess)
 
 	http.CookieJar
+=======
+	http.HandleFunc("/note", createNote)
+	http.HandleFunc("/note/createProcess", noteCreation)
+>>>>>>> 045e7729cffb22890fb14fa4867c9c12814778d3
 	http.ListenAndServe(":8080", nil)
 }
 
+func createNote(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("yay")
+	tpl.ExecuteTemplate(w, "createNote.gohtml", nil)
+
+}
+
+//this process does nothing yet
+func noteCreation(w http.ResponseWriter, r *http.Request) {
+
+	//notes := Note{}
+
+	_, err := db.Exec("INSERT INTO note Note VALUES $1", r.FormValue("message"))
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+}
+
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
+
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
 }
 
