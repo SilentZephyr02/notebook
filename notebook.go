@@ -30,12 +30,11 @@ type MetaNote struct {
 	MemberID    int
 	Permissions int
 }
-
+*/
 type Note struct {
 	ID   int
 	Note string
 }
-*/
 
 //localhost:8080
 
@@ -71,7 +70,7 @@ func init() {
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int, Permissions int)")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
-	//_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
+	_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
 	//The above line allows us to generate a database with filled in fields for testing
 
 	if err != nil {
@@ -87,10 +86,32 @@ func main() {
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
+	http.HandleFunc("/note", createNote)
+	http.HandleFunc("/note/createProcess", noteCreation)
 	http.ListenAndServe(":8080", nil)
 }
 
+func createNote(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("yay")
+	tpl.ExecuteTemplate(w, "createNote.gohtml", nil)
+
+}
+
+//this process does nothing yet
+func noteCreation(w http.ResponseWriter, r *http.Request) {
+
+	//notes := Note{}
+
+	_, err := db.Exec("INSERT INTO note Note VALUES $1", r.FormValue("message"))
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+}
+
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
+
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
 }
 
