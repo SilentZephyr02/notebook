@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -107,18 +106,17 @@ func noteCreation(w http.ResponseWriter, r *http.Request) {
 
 	cookie, _ := r.Cookie("ID")
 
-	fmt.Println(cookie)
-	IDstuff := 
-	re := regexp.MustCompile("[0-9]+")
-	fmt.Println(re.FindAllString(cookie, -1))
-	/*
-		per := 111
-		_, err := db.Exec("INSERT INTO metanote (memberID, permissions) VALUES ($1, $2)", cookie, per)
-		if err != nil {
-			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
-			return
-		}
-	*/
+	s := cookie.Value
+
+	noteID, _ := strconv.Atoi(s)
+
+	per := 111
+	_, err := db.Exec("INSERT INTO metanote (memberID, permissions) VALUES ($1, $2)", noteID, per)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
 }
 func addNote(ID int, newNote string) {
 	_, err := db.Exec("INSERT INTO note (ID, Note) VALUES ($1, $2)", ID, newNote)
