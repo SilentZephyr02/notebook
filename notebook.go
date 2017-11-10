@@ -86,15 +86,12 @@ func main() {
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
-<<<<<<< HEAD
 	http.HandleFunc("/members/update", membersUpdateForm)
 	http.HandleFunc("/members/update/process", membersUpdateProcess)
 
 	http.CookieJar
-=======
 	http.HandleFunc("/note", createNote)
 	http.HandleFunc("/note/createProcess", noteCreation)
->>>>>>> 045e7729cffb22890fb14fa4867c9c12814778d3
 	http.ListenAndServe(":8080", nil)
 }
 
