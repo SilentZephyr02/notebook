@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -31,7 +32,7 @@ type MetaNote struct {
 	Permissions int
 }
 */
-type Note struct {
+type Notes struct {
 	ID   int
 	Note string
 }
@@ -89,7 +90,7 @@ func main() {
 	http.HandleFunc("/members/update", membersUpdateForm)
 	http.HandleFunc("/members/update/process", membersUpdateProcess)
 
-	http.CookieJar
+	//http.CookieJar
 	http.HandleFunc("/note", createNote)
 	http.HandleFunc("/note/createProcess", noteCreation)
 	http.ListenAndServe(":8080", nil)
@@ -104,14 +105,26 @@ func createNote(w http.ResponseWriter, r *http.Request) {
 //this process does nothing yet
 func noteCreation(w http.ResponseWriter, r *http.Request) {
 
-	//notes := Note{}
+	cookie, _ := r.Cookie("ID")
 
-	_, err := db.Exec("INSERT INTO note Note VALUES $1", r.FormValue("message"))
+	fmt.Println(cookie)
+	IDstuff := 
+	re := regexp.MustCompile("[0-9]+")
+	fmt.Println(re.FindAllString(cookie, -1))
+	/*
+		per := 111
+		_, err := db.Exec("INSERT INTO metanote (memberID, permissions) VALUES ($1, $2)", cookie, per)
+		if err != nil {
+			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+			return
+		}
+	*/
+}
+func addNote(ID int, newNote string) {
+	_, err := db.Exec("INSERT INTO note (ID, Note) VALUES ($1, $2)", ID, newNote)
 	if err != nil {
-		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
-		return
+		panic(err)
 	}
-
 }
 
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
