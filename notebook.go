@@ -93,7 +93,7 @@ func main() {
 	http.HandleFunc("/members/delete", membersDeleteProcess)
 	http.HandleFunc("/note/list", listOwnersNotes)
 	http.HandleFunc("/note", createNote)
-	//	http.HandleFunc("/note/createProcess", noteCreation)
+	http.HandleFunc("/note/createProcess", noteCreation)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -127,7 +127,7 @@ func getCurrentUsername(r *http.Request) string {
 }
 
 //this process does nothing yet
-/*
+
 func noteCreation(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
@@ -164,7 +164,6 @@ func addMetaNote(noteID int, memberID int, per int) {
 		panic(err)
 	}
 }
-*/
 
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
