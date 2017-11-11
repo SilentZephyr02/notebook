@@ -84,7 +84,7 @@ func init() {
 func main() {
 	http.HandleFunc("/", loginCreateForm)
 	http.HandleFunc("/login", loginProcess)
-	http.HandleFunc("/login", logoutProcess)
+	http.HandleFunc("/logout", logoutProcess)
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
@@ -118,6 +118,12 @@ func getCurrentID(r *http.Request) int {
 	cookieID, _ := r.Cookie("ID")
 	ID, _ := strconv.Atoi(cookieID.Value)
 	return ID
+}
+
+func getCurrentUsername(r *http.Request) string {
+	cookieUser, _ := r.Cookie("Username")
+	Username := cookieUser.Value
+	return Username
 }
 
 //this process does nothing yet
@@ -185,6 +191,8 @@ func logoutProcess(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, expiredCookie)
 	expiredCookie = &http.Cookie{Name: "ID", MaxAge: -10, Expires: time.Now()}
 	http.SetCookie(w, expiredCookie)
+
+	loginCreateForm(w, r)
 }
 
 func listAllMembers(w http.ResponseWriter, r *http.Request) {
