@@ -1,6 +1,6 @@
 {{template "header"}}
 <h1>This is members</h1>
 {{range .}}
-<p>{{.ID}} - {{.Username}} {{.Password}}- <a href="/members/update?id={{.ID}}">edit</a> </p>
+<p>{{.ID}} - {{.Username}} {{.Password}}- <a href="/members/update?id={{.ID}}">update</a>- <a href="/members/delete?id={{.ID}}">delete</a></p>
 {{end}}
 {{template "footer"}}
