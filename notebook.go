@@ -128,8 +128,8 @@ func noteCreation(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func addMetaNote(memberID int, per int) {
-	_, err := db.Exec("INSERT INTO metanote (memberID, permissions) VALUES ($1, $2)", memberID, per)
+func addMetaNote(noteID int, memberID int, per int) {
+	_, err := db.Exec("INSERT INTO metanote (NoteID, memberID, permissions) VALUES ($1, $2)", memberID, per)
 	if err != nil {
 		panic(err)
 	}
