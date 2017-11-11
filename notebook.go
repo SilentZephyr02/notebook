@@ -69,7 +69,7 @@ func init() {
 
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS members (ID SERIAL PRIMARY KEY,Username varchar(20) NOT NULL, Password varchar(20) NOT NULL, CONSTRAINT UC_Member UNIQUE (Username))")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS presets (ID SERIAL PRIMARY KEY,OwnerID int, MemberID int, Permissions int)")
-	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID SERIAL PRIMARY KEY, MemberID int PRIMARY KEY, Permissions int)")
+	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS metanote (NoteID int, MemberID int, Permissions int, PRIMARY KEY(NoteID, MemberID))")
 	_, err = db.Exec("CREATE TABLE  IF NOT EXISTS note (ID SERIAL PRIMARY KEY, Note varchar(2550))")
 	_, err = db.Exec("INSERT INTO members (Username,Password) VALUES ('admin','password'),('John','bird'),('Cam','cat'),('Scott','dog'),('Leaf','tree')")
 	//The above line allows us to generate a database with filled in fields for testing
@@ -124,12 +124,27 @@ func noteCreation(w http.ResponseWriter, r *http.Request) {
 	s := cookie.Value
 	memberID, _ := strconv.Atoi(s)
 	per := 111
-	addMetaNote(memberID, per)
+	noteID := 0
+	result := db.QueryRow("SELECT ID FROM note ORDER BY ID DESC LIMIT 1")
+	newErr := result.Scan(&noteID)
+	switch {
+	case newErr == sql.ErrNoRows:
+		//no row
+		fmt.Println("No user found")
+		tpl.ExecuteTemplate(w, "login.gohtml", "No User Found")
+	case newErr != nil:
+		//else error
+		http.Error(w, http.StatusText(500), 500)
+		return
+	default:
+		addMetaNote(noteID, memberID, per)
+		fmt.Println(noteID)
+	}
 
 }
 
 func addMetaNote(noteID int, memberID int, per int) {
-	_, err := db.Exec("INSERT INTO metanote (NoteID, memberID, permissions) VALUES ($1, $2)", memberID, per)
+	_, err := db.Exec("INSERT INTO metanote (NoteID, memberID, permissions) VALUES ($1, $2, $3)", noteID, memberID, per)
 	if err != nil {
 		panic(err)
 	}
