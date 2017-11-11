@@ -99,7 +99,31 @@ func main() {
 	http.HandleFunc("/note/update", noteUpdateForm)
 	http.HandleFunc("/note/update/process", noteUpdateProcess)
 	http.HandleFunc("/note/delete", noteDeleteForm)
+	http.HandleFunc("/note/permissions", notePermissionsForm)
 	http.ListenAndServe(":8080", nil)
+}
+
+func notePermissionsForm(W http.ResponseWriter, r *http.Request) {
+	//inner join to get all users with permissions to this note,
+	// list and allow edit of permissions & addition of read access
+	noteID := r.FormValue("id")
+	if noteID == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.Query("SELECT members.username FROM members INNER JOIN metanote ON members.ID = metanote.memberid INNER JOIN note ON metanote.noteid = note.id WHERE metanote.noteid = $1", noteID)
+	users := make([]int, 0)
+	for rows.Next() {
+		note := Note{}
+		err := rows.Scan(&note.ID, &note.Note)
+
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		users = append(note)
+	}
 }
 
 func noteCreateForm(w http.ResponseWriter, r *http.Request) {
