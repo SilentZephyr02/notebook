@@ -114,22 +114,22 @@ func loggedInCheck(r *http.Request) bool {
 
 //this process does nothing yet
 func noteCreation(w http.ResponseWriter, r *http.Request) {
-	cookie, _ := r.Cookie("ID")
 
-	s := cookie.Value
-
-	memberID, _ := strconv.Atoi(s)
-
-	per := 111
-	_, err := db.Exec("INSERT INTO metanote (memberID, permissions) VALUES ($1, $2)", memberID, per)
+	_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
 	if err != nil {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 		return
 	}
+	cookie, _ := r.Cookie("ID")
+	s := cookie.Value
+	memberID, _ := strconv.Atoi(s)
+	per := 111
+	addMetaNote(memberID, per)
+
 }
 
-func addNote(ID int, newNote string) {
-	_, err := db.Exec("INSERT INTO note (ID, Note) VALUES ($1, $2)", ID, newNote)
+func addMetaNote(noteID int, memberID int, per int) {
+	_, err := db.Exec("INSERT INTO metanote (NoteID, memberID, permissions) VALUES ($1, $2)", memberID, per)
 	if err != nil {
 		panic(err)
 	}
