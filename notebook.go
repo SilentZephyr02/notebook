@@ -129,7 +129,6 @@ func getCurrentUsername(r *http.Request) string {
 //this process does nothing yet
 
 func noteCreation(w http.ResponseWriter, r *http.Request) {
-
 	_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
 	if err != nil {
 		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
@@ -153,7 +152,7 @@ func noteCreation(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		addMetaNote(noteID, memberID, per)
-		fmt.Println(noteID)
+		listOwnersNotes(w, r)
 	}
 
 }
@@ -249,13 +248,8 @@ func listAllMembers(w http.ResponseWriter, r *http.Request) {
 
 func listOwnersNotes(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
-		if r.Method != "GET" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-			return
-		}
-
 		fmt.Println(getCurrentID(r))
-		rows, err := db.Query("SELECT * FROM note WHERE ID=$1", getCurrentID(r))
+		rows, err := db.Query("select id,note from note inner join metanote on note.id = noteid where memberid = $1", getCurrentID(r))
 
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
