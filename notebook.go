@@ -32,7 +32,7 @@ type MetaNote struct {
 	Permissions int
 }
 */
-type Notes struct {
+type Note struct {
 	ID   int
 	Note string
 }
@@ -85,22 +85,29 @@ func main() {
 	http.HandleFunc("/", loginCreateForm)
 	http.HandleFunc("/login", loginProcess)
 	http.HandleFunc("/logout", logoutProcess)
+
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
 	http.HandleFunc("/members/update", membersUpdateForm)
 	http.HandleFunc("/members/update/process", membersUpdateProcess)
 	http.HandleFunc("/members/delete", membersDeleteProcess)
+
 	http.HandleFunc("/note/list", listOwnersNotes)
-	http.HandleFunc("/note", createNote)
-	http.HandleFunc("/note/createProcess", noteCreation)
+	http.HandleFunc("/note/new", noteCreateForm)
+	http.HandleFunc("/note/new/process", noteCreateProcess)
+	http.HandleFunc("/note/update", noteUpdateForm)
+	http.HandleFunc("/note/update/process", noteUpdateProcess)
+	http.HandleFunc("/note/delete", noteDeleteForm)
 	http.ListenAndServe(":8080", nil)
 }
 
-func createNote(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("yay")
-	tpl.ExecuteTemplate(w, "createNote.gohtml", nil)
-
+func noteCreateForm(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		tpl.ExecuteTemplate(w, "noteCreateForm.gohtml", nil)
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
+	}
 }
 
 func loggedInCheck(r *http.Request) bool {
@@ -126,35 +133,36 @@ func getCurrentUsername(r *http.Request) string {
 	return Username
 }
 
-//this process does nothing yet
-
-func noteCreation(w http.ResponseWriter, r *http.Request) {
-	_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
-	if err != nil {
-		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
-		return
+func noteCreateProcess(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
+		if err != nil {
+			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+			return
+		}
+		cookie, _ := r.Cookie("ID")
+		s := cookie.Value
+		memberID, _ := strconv.Atoi(s)
+		per := 111
+		noteID := 0
+		result := db.QueryRow("SELECT ID FROM note ORDER BY ID DESC LIMIT 1")
+		newErr := result.Scan(&noteID)
+		switch {
+		case newErr == sql.ErrNoRows:
+			//no row
+			fmt.Println("No user found")
+			tpl.ExecuteTemplate(w, "login.gohtml", "No User Found")
+		case newErr != nil:
+			//else error
+			http.Error(w, http.StatusText(500), 500)
+			return
+		default:
+			addMetaNote(noteID, memberID, per)
+			listOwnersNotes(w, r)
+		}
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
 	}
-	cookie, _ := r.Cookie("ID")
-	s := cookie.Value
-	memberID, _ := strconv.Atoi(s)
-	per := 111
-	noteID := 0
-	result := db.QueryRow("SELECT ID FROM note ORDER BY ID DESC LIMIT 1")
-	newErr := result.Scan(&noteID)
-	switch {
-	case newErr == sql.ErrNoRows:
-		//no row
-		fmt.Println("No user found")
-		tpl.ExecuteTemplate(w, "login.gohtml", "No User Found")
-	case newErr != nil:
-		//else error
-		http.Error(w, http.StatusText(500), 500)
-		return
-	default:
-		addMetaNote(noteID, memberID, per)
-		listOwnersNotes(w, r)
-	}
-
 }
 
 func addMetaNote(noteID int, memberID int, per int) {
@@ -248,7 +256,6 @@ func listAllMembers(w http.ResponseWriter, r *http.Request) {
 
 func listOwnersNotes(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
-		fmt.Println(getCurrentID(r))
 		rows, err := db.Query("select id,note from note inner join metanote on note.id = noteid where memberid = $1", getCurrentID(r))
 
 		if err != nil {
@@ -257,9 +264,9 @@ func listOwnersNotes(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 
-		notes := make([]Notes, 0)
+		notes := make([]Note, 0)
 		for rows.Next() {
-			note := Notes{}
+			note := Note{}
 			err := rows.Scan(&note.ID, &note.Note)
 
 			if err != nil {
@@ -352,6 +359,39 @@ func membersUpdateForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func noteUpdateForm(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		/*
+			if r.Method != "GET" {
+				http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+				return
+			}
+		*/
+
+		noteID := r.FormValue("id")
+		if noteID == "" {
+			http.Error(w, http.StatusText(400), http.StatusBadRequest)
+			return
+		}
+
+		row := db.QueryRow("SELECT * FROM note WHERE id = $1", noteID)
+
+		note := Note{}
+		err := row.Scan(&note.ID, &note.Note)
+		switch {
+		case err == sql.ErrNoRows:
+			http.NotFound(w, r)
+			return
+		case err != nil:
+			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+			return
+		}
+		tpl.ExecuteTemplate(w, "noteUpdate.gohtml", note)
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
+	}
+}
+
 func membersUpdateProcess(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
 		if r.Method != "POST" {
@@ -381,6 +421,34 @@ func membersUpdateProcess(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func noteUpdateProcess(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		if r.Method != "POST" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+		}
+
+		noteID := r.FormValue("id")
+		if noteID == "" {
+			http.Error(w, http.StatusText(400), http.StatusBadRequest)
+			return
+		}
+
+		note := Note{}
+		note.Note = r.FormValue("message")
+
+		_, err := db.Exec("UPDATE note SET Note=$1 WHERE ID=$2", note.Note, noteID)
+		if err != nil {
+			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+			return
+		}
+
+		listOwnersNotes(w, r)
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
+	}
+}
+
 func membersDeleteProcess(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
 		if r.Method != "GET" {
@@ -401,6 +469,31 @@ func membersDeleteProcess(w http.ResponseWriter, r *http.Request) {
 		}
 
 		listAllMembers(w, r)
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
+	}
+}
+
+func noteDeleteForm(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+		}
+
+		noteID := r.FormValue("id")
+		if noteID == "" {
+			http.Error(w, http.StatusText(400), http.StatusBadRequest)
+			return
+		}
+
+		_, err := db.Exec("DELETE FROM note WHERE ID=$1;", noteID)
+		if err != nil {
+			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+			return
+		}
+
+		listOwnersNotes(w, r)
 	} else {
 		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
 	}

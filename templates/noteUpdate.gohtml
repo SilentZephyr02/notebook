@@ -1,0 +1,8 @@
+{{template "header"}}
+<h1>This is note update</h1>
+<form method="post" action="/note/update/process">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <textarea rows="10" cols="40" autofocus required id="messageID" name="message" maxlength="2500" >{{.Note}}</textarea>
+    <input type="submit">
+</form>
+{{template "footer"}}
