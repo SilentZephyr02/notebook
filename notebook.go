@@ -84,14 +84,16 @@ func init() {
 func main() {
 	http.HandleFunc("/", loginCreateForm)
 	http.HandleFunc("/login", loginProcess)
+	http.HandleFunc("/login", logoutProcess)
 	http.HandleFunc("/members", listAllMembers)
 	http.HandleFunc("/members/new", membersCreateForm)
 	http.HandleFunc("/members/new/process", membersCreateProcess)
 	http.HandleFunc("/members/update", membersUpdateForm)
 	http.HandleFunc("/members/update/process", membersUpdateProcess)
 	http.HandleFunc("/members/delete", membersDeleteProcess)
+	http.HandleFunc("/note/list", listOwnersNotes)
 	http.HandleFunc("/note", createNote)
-	http.HandleFunc("/note/createProcess", noteCreation)
+	//	http.HandleFunc("/note/createProcess", noteCreation)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -112,7 +114,14 @@ func loggedInCheck(r *http.Request) bool {
 	return true
 }
 
+func getCurrentID(r *http.Request) int {
+	cookieID, _ := r.Cookie("ID")
+	ID, _ := strconv.Atoi(cookieID.Value)
+	return ID
+}
+
 //this process does nothing yet
+/*
 func noteCreation(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec("INSERT INTO note (Note) VALUES ($1)", r.FormValue("message"))
@@ -134,6 +143,7 @@ func addMetaNote(noteID int, memberID int, per int) {
 		panic(err)
 	}
 }
+*/
 
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
@@ -170,6 +180,13 @@ func loginProcess(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func logoutProcess(w http.ResponseWriter, r *http.Request) {
+	expiredCookie := &http.Cookie{Name: "username", MaxAge: -10, Expires: time.Now()}
+	http.SetCookie(w, expiredCookie)
+	expiredCookie = &http.Cookie{Name: "ID", MaxAge: -10, Expires: time.Now()}
+	http.SetCookie(w, expiredCookie)
+}
+
 func listAllMembers(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
 		if r.Method != "GET" {
@@ -177,8 +194,6 @@ func listAllMembers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		//c := r.Header
-		//fmt.Println(c)
 		rows, err := db.Query("SELECT * FROM members")
 
 		if err != nil {
@@ -205,6 +220,45 @@ func listAllMembers(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tpl.ExecuteTemplate(w, "members.gohtml", mbrs)
+	} else {
+		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
+	}
+}
+
+func listOwnersNotes(w http.ResponseWriter, r *http.Request) {
+	if loggedInCheck(r) {
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+		}
+
+		fmt.Println(getCurrentID(r))
+		rows, err := db.Query("SELECT * FROM note WHERE ID=$1", getCurrentID(r))
+
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		defer rows.Close()
+
+		notes := make([]Notes, 0)
+		for rows.Next() {
+			note := Notes{}
+			err := rows.Scan(&note.ID, &note.Note)
+
+			if err != nil {
+				http.Error(w, http.StatusText(500), 500)
+				return
+			}
+			notes = append(notes, note)
+		}
+
+		if err = rows.Err(); err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+
+		tpl.ExecuteTemplate(w, "notes.gohtml", notes)
 	} else {
 		tpl.ExecuteTemplate(w, "login.gohtml", "You must be logged in to continue")
 	}
