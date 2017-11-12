@@ -18,6 +18,11 @@ type Members struct {
 	Password string
 }
 
+type Permissions struct {
+	Username   string
+	Permission int
+}
+
 /*
 type Presets struct {
 	ID          int
@@ -103,7 +108,7 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
-func notePermissionsForm(W http.ResponseWriter, r *http.Request) {
+func notePermissionsForm(w http.ResponseWriter, r *http.Request) {
 	//inner join to get all users with permissions to this note,
 	// list and allow edit of permissions & addition of read access
 	noteID := r.FormValue("id")
@@ -111,19 +116,24 @@ func notePermissionsForm(W http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), http.StatusBadRequest)
 		return
 	}
-
-	rows, err := db.Query("SELECT members.username FROM members INNER JOIN metanote ON members.ID = metanote.memberid INNER JOIN note ON metanote.noteid = note.id WHERE metanote.noteid = $1", noteID)
-	users := make([]int, 0)
+	rows, err := db.Query("SELECT members.username, metanote.permissions FROM members INNER JOIN metanote ON members.ID = metanote.memberid INNER JOIN note ON metanote.noteid = note.id WHERE metanote.noteid = $1", noteID)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	users := make([]Permissions, 0)
 	for rows.Next() {
-		note := Note{}
-		err := rows.Scan(&note.ID, &note.Note)
+		user := Permissions{}
+		rowErr := rows.Scan(&user.Username, &user.Permission)
 
-		if err != nil {
+		if rowErr != nil {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-		users = append(note)
+		users = append(users, user)
 	}
+	tpl.ExecuteTemplate(w, "permissions.gohtml", users)
+
 }
 
 func noteCreateForm(w http.ResponseWriter, r *http.Request) {
