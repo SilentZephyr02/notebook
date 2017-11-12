@@ -1,9 +1,18 @@
 {{template "header"}}
 <h1>This is regex search</h1>
 <form method="post" action="/search/process">
-    <input type="text" name="id" autofocus required value="{{.ID}}">
-    <input type="text" name="Username" required value="{{.Username}}">
-    <input type="text" name="Password" required value="{{.Password}}">
+    <input type="text" name="searchText">
+    <select name="regex">
+        <option value="prefix">Prefix</option>
+        <option value="suffix">Suffix</option>
+        <option value="ps">Prefix and Suffix</option>
+        <option value="phone">Phone</option>
+        <option value="email">Email</option>
+        <option value="words">Words</option>
+        <option value="capitals">Capitals</option>
+    </select>
     <input type="submit">
 </form>
 {{template "footer"}}
+
+

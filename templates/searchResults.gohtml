@@ -1,0 +1,6 @@
+{{template "header"}}
+<h1>{{.S}}</h1>
+{{range .NC}}
+<p>{{.ID}} - {{.Note}} - {{.Count}} - <a href="/note/update?id={{.ID}}">update</a>- <a href="/note/delete?id={{.ID}}">delete</a>- <a href="/note/permissions?id={{.ID}}">permissions</a></p>
+{{end}}
+{{template "footer"}}

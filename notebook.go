@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -107,6 +108,7 @@ func main() {
 	http.HandleFunc("/note/permissions", notePermissionsForm)
 
 	http.HandleFunc("/search", searchForm)
+	http.HandleFunc("/search/process", searchProcess)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -138,8 +140,95 @@ func notePermissionsForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchForm(w http.ResponseWriter, r *http.Request) {
-
+	tpl.ExecuteTemplate(w, "searchForm.gohtml", nil)
 }
+
+func searchProcess(w http.ResponseWriter, r *http.Request) {
+	text := r.FormValue("searchText")
+	regex := r.FormValue("regex")
+
+	var regexString string
+	var regexpTitle string
+
+	if regex == "prefix" {
+		regexString = (`\b` + text)
+		regexpTitle = ("Search of " + regex + " of " + text)
+	} else if regex == "suffix" {
+		regexString = (text + `\b`)
+		regexpTitle = ("Search of " + regex + " of " + text)
+	} else if regex == "ps" {
+		regexString = (`\b` + text + "|" + text + `\b`)
+		regexpTitle = ("Search of Prefix and Suffix of " + text)
+	} else if regex == "words" {
+		regexString = "meeting|minutes|agenda|action|attendees|apologies"
+		regexpTitle = ("Search of Words")
+	} else if regex == "phone" {
+		regexString = (`\(\d{2,}\)\d*`)
+		regexpTitle = ("Search of Phone")
+	} else if regex == "email" {
+		regexString = (`[\w\.]+@[\w\.]+`)
+		regexpTitle = ("Search of Email")
+	} else if regex == "capitals" {
+		regexString = (`\b[A-Z]{3,}\b`)
+		regexpTitle = ("Search of Capitals")
+	}
+
+	regexp := regexp.MustCompile(regexString)
+
+	rows, err := db.Query("select id,note from note inner join metanote on note.id = noteid where memberid = $1", getCurrentID(r))
+
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	defer rows.Close()
+
+	notes := make([]Note, 0)
+	for rows.Next() {
+		note := Note{}
+		err := rows.Scan(&note.ID, &note.Note)
+
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		notes = append(notes, note)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	type NoteCount struct {
+		ID    int
+		Note  string
+		Count int
+	}
+
+	NoteCounts := make([]NoteCount, 0)
+
+	for i := 0; i < len(notes); i++ {
+		if regexp.MatchString(notes[i].Note) {
+			matchedNote := regexp.FindAllStringIndex(notes[i].Note, -1)
+			nc := NoteCount{notes[i].ID, notes[i].Note, len(matchedNote)}
+			NoteCounts = append(NoteCounts, nc)
+		}
+	}
+
+	tpl.ExecuteTemplate(w, "searchResults.gohtml",
+		struct {
+			NC []NoteCount
+			S  string
+		}{NoteCounts, regexpTitle})
+}
+
+/*
+/([A-Z]{3,})/g
+/(\(\d{2,}\)\d*)/g
+meeting|minutes|agenda|action|attendees|apologies
+/([\w\.]+@[\w]+)/g
+*/
 
 func noteCreateForm(w http.ResponseWriter, r *http.Request) {
 	if loggedInCheck(r) {
