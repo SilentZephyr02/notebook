@@ -100,10 +100,12 @@ func main() {
 	http.HandleFunc("/note/update/process", noteUpdateProcess)
 	http.HandleFunc("/note/delete", noteDeleteForm)
 	http.HandleFunc("/note/permissions", notePermissionsForm)
+
+	http.HandleFunc("/search", searchForm)
 	http.ListenAndServe(":8080", nil)
 }
 
-func notePermissionsForm(W http.ResponseWriter, r *http.Request) {
+func notePermissionsForm(w http.ResponseWriter, r *http.Request) {
 	//inner join to get all users with permissions to this note,
 	// list and allow edit of permissions & addition of read access
 	noteID := r.FormValue("id")
@@ -124,6 +126,10 @@ func notePermissionsForm(W http.ResponseWriter, r *http.Request) {
 		}
 		users = append(note)
 	}
+}
+
+func searchForm(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func noteCreateForm(w http.ResponseWriter, r *http.Request) {
