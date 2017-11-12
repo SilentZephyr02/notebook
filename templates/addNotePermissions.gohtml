@@ -1,0 +1,8 @@
+{{template "header"}}
+<h1>Add another user to your note</h1>
+<form method="post" action="/note/permissions/add?id={{.}}">
+    username <br/>
+    <input type="text" name="username"><br/>
+    <input type="submit">
+</form>
+{{template "footer"}}

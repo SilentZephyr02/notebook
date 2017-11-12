@@ -1,6 +1,11 @@
 {{template "header"}}
 <h1>This is permissions</h1>
 {{range .}}
-<p>{{.Username}} - {{.Permission}}</p>
+<p>{{.Username}} - {{.Permission}} - {{.ID}}</p>
 {{end}}
+<form method="post" action="/note/permissions/add?id={{.ID}}">
+    username <br/>
+    <input type="text" name="username"><br/>
+    <input type="submit">
+</form>
 {{template "footer"}}

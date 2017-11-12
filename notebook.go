@@ -22,6 +22,7 @@ type Members struct {
 type Permissions struct {
 	Username   string
 	Permission int
+	ID         int
 }
 
 /*
@@ -106,6 +107,7 @@ func main() {
 	http.HandleFunc("/note/update/process", noteUpdateProcess)
 	http.HandleFunc("/note/delete", noteDeleteForm)
 	http.HandleFunc("/note/permissions", notePermissionsForm)
+	http.HandleFunc("/note/permissions/add", addUserToNote)
 
 	http.HandleFunc("/search", searchForm)
 	http.HandleFunc("/search/process", searchProcess)
@@ -134,6 +136,8 @@ func notePermissionsForm(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
+		ID, _ := strconv.Atoi(noteID)
+		user.ID = ID
 		users = append(users, user)
 	}
 	tpl.ExecuteTemplate(w, "permissions.gohtml", users)
@@ -302,6 +306,16 @@ func addMetaNote(noteID int, memberID int, per int) {
 
 func loginCreateForm(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "login.gohtml", nil)
+}
+
+func addUserToNote(w http.ResponseWriter, r *http.Request) {
+	noteID, _ := strconv.Atoi(r.FormValue("id"))
+	//noteID := r.FormValue("id")
+	username := r.FormValue("username")
+	if checkIfMemberExists(username) {
+		addMetaNote(noteID, getMemberID(username), 001)
+	}
+	tpl.ExecuteTemplate(w, "addNotePermissions.gohtml", noteID)
 }
 
 func loginProcess(w http.ResponseWriter, r *http.Request) {
@@ -639,4 +653,26 @@ func checkIfMemberExists(name string) bool {
 		return true
 	}
 	return false
+}
+
+func getMemberID(name string) int {
+	memberID := 0
+	rows := db.QueryRow("SELECT (ID) FROM members WHERE Username = $1", name)
+	newErr := rows.Scan(&memberID)
+	fmt.Println(memberID)
+
+	switch {
+	case newErr == sql.ErrNoRows:
+		//no row
+		fmt.Println("No user found")
+
+	case newErr != nil:
+		//else error
+		fmt.Println("Other error")
+		fmt.Println(newErr)
+		return -1
+	default:
+		return memberID
+	}
+	return -1
 }
