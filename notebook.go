@@ -135,7 +135,6 @@ func notePermissionsForm(w http.ResponseWriter, r *http.Request) {
 		users = append(users, user)
 	}
 	tpl.ExecuteTemplate(w, "permissions.gohtml", users)
-
 }
 
 func searchForm(w http.ResponseWriter, r *http.Request) {
